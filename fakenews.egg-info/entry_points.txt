@@ -1,0 +1,7 @@
+[console_scripts]
+fakenews-eval = fakenews.scripts.evaluate_model:main
+fakenews-infer = fakenews.infer:main
+fakenews-ingest = fakenews.scripts.ingest_dataset:main
+fakenews-train = fakenews.train:main
+fakenews-tune-threshold = fakenews.scripts.tune_threshold:main
+fakenews-ui = fakenews.ui.app:main

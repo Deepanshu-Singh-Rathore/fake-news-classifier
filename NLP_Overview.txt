@@ -1,0 +1,95 @@
+Fake News Detection – NLP Overview
+
+Goal
+- Detect whether a given news text (or article URL) is FAKE (0) or REAL (1) using a lightweight, explainable NLP baseline with options for live ingestion and threshold tuning.
+
+End-to-End Pipeline
+1) Text acquisition
+   - From CSV datasets: columns `text,label`.
+   - From live sources: NewsAPI (title, description, content) and optional full-article extraction via trafilatura.
+   - URL canonicalization and deduplication: remove trackers, normalize URL, hash text to avoid duplicates.
+
+2) Text preprocessing (fakenews/preprocess.py)
+   - `clean_text(text)`: lowercase; remove URLs, HTML tags, non‑alphanumeric characters; collapse whitespace.
+   - Applied at training, evaluation, inference, UI, and live ingestion.
+
+3) Feature extraction (scikit‑learn)
+   - `TfidfVectorizer` converts cleaned text into sparse TF‑IDF features.
+   - Configurable parameters (via train.py):
+     - `max_features`: cap vocabulary size (e.g., 2k–20k).
+     - `ngram_range`: 1-grams or 1–2 grams for context capture.
+     - `min_df` / `max_df`: ignore too-rare or too-common terms.
+   - Rationale: fast, strong baseline; interpretable; easy to deploy.
+
+4) Classifier
+   - `LogisticRegression` (liblinear/saga under the hood in sklearn):
+     - Binary classification with optional `class_weight='balanced'` for imbalance.
+     - Outputs decision scores and class probabilities (after calibration).
+   - Optional probability calibration (`--calibrate`):
+     - `CalibratedClassifierCV(method='sigmoid')` (Platt scaling) for better probability quality.
+
+5) Thresholding & inference
+   - Default threshold: 0.50 on P(REAL).
+   - Tunable threshold using ROC/Youden’s J (scripts/tune_threshold.py):
+     - Compute ROC; choose threshold maximizing J = TPR − FPR.
+   - Inference scripts (`infer.py`, UI) accept `--threshold` and show calibrated probabilities when available.
+
+6) Evaluation & inspection
+   - Train/validation split (stratified when possible), accuracy, and `classification_report`.
+   - Optional k‑fold CV (StratifiedKFold + cross_val_score).
+   - `scripts/evaluate_model.py`: accuracy, confusion matrix, misclassifications, and top informative features from LR coefficients.
+
+7) Live ingestion & URL classification
+   - `fakenews/scripts/live_detect.py`: fetches articles from NewsAPI (requires `NEWSAPI_KEY`).
+   - Optional full‑text extraction via `trafilatura`; fallback to available text fields if extraction fails.
+   - Dedup by canonical URL and SHA‑256 hash of text; outputs JSONL with probabilities and labels.
+   - Streamlit UI (`ui/app.py`) supports both raw text and URL classification.
+
+Core NLP/ML Libraries
+- scikit‑learn: `TfidfVectorizer`, `LogisticRegression`, `CalibratedClassifierCV`, `StratifiedKFold`, `cross_val_score`, `classification_report`, `accuracy_score`.
+- pandas: dataset I/O and manipulation.
+- joblib: model persistence.
+- trafilatura: article text extraction from URLs (robust boilerplate removal and metadata support).
+- requests: HTTP client for NewsAPI and fallback URL fetch.
+- streamlit: interactive demo UI for text/URL inference.
+
+Recent Enhancements
+- Classifier switch: `--model-type {lr,linear_svc}` to choose Logistic Regression (probabilities, calibratable) or LinearSVC (strong linear margin, no probabilities).
+- Hyperparameter tuning: `--tune-hyperparams` runs `GridSearchCV` with `StratifiedKFold` over TF‑IDF and classifier params (e.g., `max_features`, `ngram_range`, `min_df`, `max_df`, `sublinear_tf`, `C`). Scoring selectable via `--tune-scoring {f1,f1_macro}`. Best config is logged.
+- Probability calibration fix: uses `CalibratedClassifierCV(estimator=..., method='sigmoid')` for LR, improving probability quality for thresholding and PR‑AUC.
+- Evaluation metrics: `scripts/evaluate_model.py` now prints per‑class precision/recall/F1 and macro‑F1, plus PR‑AUC for FAKE when probabilities are available.
+
+Key Algorithms & Functions
+- Text cleaning (regex‑based):
+  - Remove URLs, HTML tags, punctuation/symbols; normalize spaces; lowercase.
+- TF‑IDF weighting:
+  - Term Frequency (TF) × Inverse Document Frequency (IDF) with optional n‑grams to capture short phrases.
+  - Produces a sparse matrix suitable for linear models.
+- Logistic Regression (binary):
+  - Linear decision boundary; interpretable via feature coefficients.
+  - Probability estimates improved via Platt scaling (sigmoid) when `--calibrate` is enabled.
+- Threshold selection:
+  - Youden’s J criterion (TPR − FPR) on validation to balance sensitivity/specificity; configurable per model.
+  - Planned: threshold sweep (macro‑F1 best, high‑precision REAL) and UI default threshold loading.
+- Evaluation metrics:
+  - Accuracy, precision/recall/F1 (via classification_report); confusion matrix; optional CV.
+  - PR‑AUC (FAKE) computed when model outputs calibrated probabilities.
+- Live ingestion robustness:
+  - URL canonicalization (drop tracker params), deduplication via text hash, backoff on rate limits.
+
+File Map (where things live)
+- `preprocess.py` – `clean_text`, dataset loader/splitter.
+- `train.py` – TF‑IDF + LR pipeline, optional calibration, CV, and model saving.
+- `infer.py` – single‑text CLI inference with probability/threshold support.
+- `scripts/evaluate_model.py` – evaluation (confusion, misclassified, feature importance).
+- `scripts/tune_threshold.py` – ROC/Youden’s J threshold suggestion.
+- `fakenews/scripts/live_detect.py` – NewsAPI fetch, extraction, dedup, and batch classification to JSONL.
+- `ui/app.py` – Streamlit app: text and URL classification with threshold slider.
+
+Recommended Extensions (next steps)
+- Probability calibration check (Brier/ECE) and PR‑AUC reporting for imbalance.
+- Add FastAPI endpoints (`/classify_text`, `/classify_url`) and structured logging.
+- Optional transformer model path (e.g., DistilBERT) for accuracy lift, with post‑hoc calibration.
+ - Character n‑grams combined with word n‑grams via `FeatureUnion` for richer patterns on short/noisy texts.
+ - Error analysis: misclassification CSV dump with truncated text and predicted probabilities; optional PR curve plotting.
+ - Threshold sweep: macro‑F1 optimized threshold and high‑precision REAL threshold surfaced to the UI.

@@ -1,0 +1,17 @@
+README.md
+pyproject.toml
+fakenews/__init__.py
+fakenews/infer.py
+fakenews/preprocess.py
+fakenews/train.py
+fakenews.egg-info/PKG-INFO
+fakenews.egg-info/SOURCES.txt
+fakenews.egg-info/dependency_links.txt
+fakenews.egg-info/entry_points.txt
+fakenews.egg-info/requires.txt
+fakenews.egg-info/top_level.txt
+fakenews/scripts/evaluate_model.py
+fakenews/scripts/ingest_dataset.py
+fakenews/scripts/tune_threshold.py
+fakenews/ui/app.py
+tests/test_pipeline.py
