@@ -1,7 +1,6 @@
-<<<<<<< HEAD
-# Fake News Detection (Baseline)
+# Fake News Classifier
 
-Simple, runnable baseline using TF‑IDF features and Logistic Regression.
+Lightweight, explainable NLP system using TF‑IDF + Logistic Regression/LinearSVC. Includes text cleaning, n‑gram features, hyperparameter tuning, probability calibration, thresholding, evaluation tools, live NewsAPI ingestion, URL deduplication, and a Streamlit UI for text/URL classification.
 
 ## Quick Start (Windows PowerShell)
 
@@ -201,7 +200,5 @@ python .\scripts\evaluate_model.py --model .\models\fake_news_model.joblib --dat
 
 ## Notes
 - This is a baseline; for production, consider larger datasets, stronger models, threshold tuning, and a held-out test set.
-=======
-# fake-news-classifier
-Fake News Classifier — Lightweight, explainable NLP system using TF-IDF + Logistic Regression/LinearSVC. Includes text cleaning, n-gram features, hyperparameter tuning, probability calibration, thresholding, evaluation tools, live NewsAPI ingestion, URL deduplication, and a Streamlit UI for text/URL classification.
->>>>>>> 1aceb55a7ef511e1d0d4a844d58b255fb152535b
+## Overview
+See `NLP_Overview.txt` for a concise description of the NLP pipeline, algorithms, and components in this project.
