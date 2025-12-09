@@ -4,7 +4,7 @@ Lightweight, explainable NLP system using TF‑IDF + Logistic Regression/LinearS
 
 ## Quick Start (Windows PowerShell)
 
-Run all commands from `C:\Users\deepa\College\NLP\fakenews`.
+Run all commands from the project root directory (e.g., `fakenews/`).
 
 ```powershell
 # 1) Create and activate a local virtual environment (using .fenv)
