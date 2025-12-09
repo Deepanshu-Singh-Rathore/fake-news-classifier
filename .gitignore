@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Build/Packaging
+build/
+dist/
+*.egg-info/
+
+# Envs
+.fenv/
+.venv/
+venv/
+
+# IDE/Editor
+.vscode/
+.DS_Store
+
+# Data & models (avoid committing personal or large artifacts)
+models/*.joblib
+models/*.pkl
+models/*.bin
+models/*.onnx
+
+# Local datasets
+data/*.csv
+!data/sample.csv
+
+# Logs & outputs
+*.log
+*.jsonl
+
+# Streamlit cache
+.streamlit/
