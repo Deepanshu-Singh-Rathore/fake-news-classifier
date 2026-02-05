@@ -13,18 +13,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-ui = ["streamlit>=1.37.0"]
-dev = ["pytest>=7.4.0", "streamlit>=1.37.0"]
-## Removed experimental transformer extra after cleanup
+dev = ["pytest>=7.4.0"]
+## Removed experimental transformer and UI extras after cleanup
 
 [project.scripts]
 fakenews-train = "fakenews.train:main"
 fakenews-infer = "fakenews.infer:main"
-fakenews-eval = "fakenews.scripts.evaluate_model:main"
-fakenews-ingest = "fakenews.scripts.ingest_dataset:main"
-fakenews-tune-threshold = "fakenews.scripts.tune_threshold:main"
-fakenews-ui = "fakenews.ui.app:main"
-fakenews-live = "fakenews.scripts.live_detect:main"
 
 [build-system]
 requires = ["setuptools>=69", "wheel"]

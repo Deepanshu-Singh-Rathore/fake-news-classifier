@@ -1,6 +1,6 @@
 # Fake News Classifier
 
-Lightweight, explainable NLP system using TF‑IDF + Logistic Regression/LinearSVC. Includes text cleaning, n‑gram features, hyperparameter tuning, probability calibration, thresholding, evaluation tools, live NewsAPI ingestion, URL deduplication, and a Streamlit UI for text/URL classification.
+Lightweight, explainable NLP system using TF‑IDF + Logistic Regression/LinearSVC. Minimal build focused on training and inference.
 
 ## Quick Start (Windows PowerShell)
 
@@ -16,16 +16,15 @@ python -m pip install --upgrade pip
 python -m pip install -r .\requirements.txt -r .\dev-requirements.txt
 
 # 3) (Optional) Use provided tiny merged dataset instead of sample
-python .\train.py --data .\data\merged.csv --model-out .\models\fake_news_model.joblib --ngrams 1,1 --max-features 2000 --class-weight balanced --cv 0 --min-df 1 --max-df 1.0 --calibrate
+python .\fakenews\train.py --data .\data\merged.csv --model-out .\models\fake_news_model.joblib --ngrams 1,1 --max-features 2000 --class-weight balanced --cv 0 --min-df 1 --max-df 1.0 --calibrate
 
 # 4) Run inference on a single text
-python .\infer.py --model .\models\fake_news_model.joblib --text "NASA releases high-res images from Europa flyby showing potential salt deposits." --proba
+python .\fakenews\infer.py --model .\models\fake_news_model.joblib --text "NASA releases high-res images from Europa flyby showing potential salt deposits." --proba
 
 # (Optional) Adjust decision threshold
-python .\infer.py --model .\models\fake_news_model.joblib --text "Scientists confirm Atlantis found intact beneath Arctic ice shelf." --proba --threshold 0.55
+python .\fakenews\infer.py --model .\models\fake_news_model.joblib --text "Scientists confirm Atlantis found intact beneath Arctic ice shelf." --proba --threshold 0.55
 
-# (Optional) Evaluate (confusion, misclassified, top features)
-python .\scripts\evaluate_model.py --model .\models\fake_news_model.joblib --data .\data\merged.csv --confusion --show-mis --top 10
+# (Optional) Evaluate quickly using scikit-learn report printed during training; rerun training with different params as needed.
 ```
 
 ### Using Packaging / Console Scripts
@@ -33,45 +32,21 @@ python .\scripts\evaluate_model.py --model .\models\fake_news_model.joblib --dat
 After editable install (`python -m pip install -e .`) you can use console commands:
 
 ```powershell
-fakenews-train --data .\data\merged.csv --model-out .\models\fake_news_model.joblib --ngrams 1,1 --max-features 2000 --class-weight balanced --cv 0 --min-df 1 --max-df 1.0 --calibrate
+fakenews-train --data .\data\merged.csv --model-out .\models\fake_news_model.joblib --ngrams 1,1 --max-features 2000 --class-weight balanced --cv 0 --min-df 1 --max-df 1.0
 fakenews-infer --model .\models\fake_news_model.joblib --text "NASA releases high-res images from Europa flyby showing potential salt deposits." --proba --threshold 0.55
-fakenews-eval --model .\models\fake_news_model.joblib --data .\data\merged.csv --confusion --show-mis --top 10
-fakenews-ingest --data path\to\a.csv path\to\b.csv --shuffle --balance undersample --per-class 2000 --test-size 0.2 --output .\data\merged.csv
-fakenews-tune-threshold --model .\models\fake_news_model.joblib --data .\data\merged.csv
-fakenews-ui  # launches Streamlit app
-fakenews-live --model .\models\fake_news_model.joblib --country us --page-size 50 --pages 1 --dedup --fetch-full --threshold 0.55  # requires NEWSAPI_KEY
 ```
 
-### One-Step Environment Setup
+### Environment Setup
 
-Use the automation script (optionally with extras and training):
-
-```powershell
-powershell .\scripts\env_setup.ps1 -Extras ui,dev -Train
-```
-
-This creates `.fenv`, installs base + requested extras, and trains a baseline if data exists.
+Create and activate a virtual environment and install dependencies as shown in Quick Start.
 
 ### Live News Detection
 
-Classify live news from NewsAPI (set an API key first):
+Removed to keep the project minimal. Use local CSVs with `text,label`.
 
-```powershell
-$env:NEWSAPI_KEY = "<your_key_here>"
-python .\fakenews\scripts\live_detect.py --model .\models\fake_news_model.joblib --country us --page-size 50 --pages 1 --dedup --fetch-full --threshold 0.55 --output .\data\live_predictions.jsonl
-# or after editable install
-fakenews-live --model .\models\fake_news_model.joblib --country us --page-size 50 --pages 1 --dedup --fetch-full --threshold 0.55 --output .\data\live_predictions.jsonl
-```
+### URL Classification from CLI
 
-Options:
-- `--query` to search "everything" endpoint; otherwise uses `top-headlines` with `--country/--category`.
-- `--fetch-full` attempts full text extraction using trafilatura; otherwise uses title/description/content.
-- `--dedup` deduplicates by canonical URL and text hash to avoid duplicates.
-- Set `NEWSAPI_KEY` env var or pass `--api-key`.
-
-### URL Classification in UI
-
-The Streamlit app now supports URL input. Paste a news article URL; it will fetch and extract content (trafilatura if available) and classify it.
+Use `fakenews-live` to fetch articles from NewsAPI and classify them. It can optionally extract full text (via trafilatura) and deduplicate by canonical URL and text hash.
 
 ### Tuning Decision Threshold
 
@@ -98,32 +73,22 @@ python -m pip install dist\fakenews-0.1.0-py3-none-any.whl
 
 ### Editable Install for Development
 ```powershell
-python -m pip install -e .[dev,ui]
+python -m pip install -e .[dev]
 ```
 
 
 > Note: A separate project `SummarAI/` exists in the repository for summarization; the instructions here apply only to the `fakenews/` fake news detection baseline.
 
-## Ingest and Balance Larger Datasets
+### Ingest and Balance Larger Datasets
 
-Merge multiple CSVs, optionally balance classes, and (optionally) split into train/test:
-
-```powershell
-# Merge two CSVs, shuffle, undersample to 2k per class, and create train/test
-python .\scripts\ingest_dataset.py --data path\to\a.csv path\to\b.csv --shuffle --balance undersample --per-class 2000 --test-size 0.2 --output .\data\merged.csv
-
-# If you just want a single merged file (no split):
-python .\scripts\ingest_dataset.py --data path\to\a.csv path\to\b.csv --shuffle --balance none --output .\data\merged.csv
-```
-
-All input files must contain `text` and `label` columns (`0`=FAKE, `1`=REAL).
+Removed helper scripts to keep minimal footprint. Prepare your CSVs externally with `text,label` columns.
 
 ## Better Features and Evaluation
 
 - Use n‑grams (bigrams) to improve features and add k‑fold CV for more stable accuracy.
 
 ```powershell
-python .\train.py --data .\data\sample.csv --model-out .\models\fake_news_model.joblib --ngrams 1,2 --cv 5 --calibrate
+python .\fakenews\train.py --data .\data\sample.csv --model-out .\models\fake_news_model.joblib --ngrams 1,2 --cv 5 --calibrate
 ```
 
 ## Data Format
@@ -148,20 +113,16 @@ fakenews/
   scripts/
     ingest_dataset.py # dataset merge/balance/split utility
     run_tests.ps1     # runs `pytest -q tests/test_pipeline.py`
-  ui/
-    app.py            # Streamlit app for quick demos
+  scripts/            # removed for minimal setup
 ```
 
-## Streamlit Demo UI
+## CLI Demo
 
-Run a simple web UI to test the model interactively:
+Classify a single text with probabilities and threshold:
 
 ```powershell
-python -m pip install -r .\requirements.txt
-streamlit run .\ui\app.py
+fakenews-infer --model .\models\fake_news_model.joblib --text "Example article text" --proba --threshold 0.55
 ```
-
-Select a model from `models/` or upload a `.joblib` file, paste text, and click Predict.
 
 ## Developer: Tests
 
@@ -170,8 +131,6 @@ Install dev requirements and run tests:
 ```powershell
 python -m pip install -r .\dev-requirements.txt
 pytest -q tests\test_pipeline.py
-# or
-powershell .\scripts\run_tests.ps1
 ```
 
 ## Troubleshooting
@@ -184,7 +143,7 @@ powershell .\scripts\run_tests.ps1
 Use conservative settings to avoid sparse feature failures:
 
 ```powershell
-python .\train.py --data .\data\merged.csv --model-out .\models\fake_news_model.joblib --ngrams 1,1 --max-features 2000 --class-weight balanced --cv 0 --min-df 1 --max-df 1.0 --calibrate
+python .\fakenews\train.py --data .\data\merged.csv --model-out .\models\fake_news_model.joblib --ngrams 1,1 --max-features 2000 --class-weight balanced --cv 0 --min-df 1 --max-df 1.0 --calibrate
 ```
 
 Avoid high `min-df`, bigrams, and large `max-features` until you have >100 examples per class.
@@ -193,9 +152,9 @@ Avoid high `min-df`, bigrams, and large `max-features` until you have >100 examp
 - Add more REAL/FAKE samples (balanced).
 - Use ingestion script to merge sources and create `train.csv` / `test.csv`:
 ```powershell
-python .\scripts\ingest_dataset.py --data .\data\merged.csv --shuffle --balance none --test-size 0.25 --output .\data\merged.csv
-python .\train.py --data .\data\train.csv --model-out .\models\fake_news_model.joblib --ngrams 1,2 --max-features 5000 --class-weight balanced --cv 5 --min-df 2 --max-df 0.9 --calibrate
-python .\scripts\evaluate_model.py --model .\models\fake_news_model.joblib --data .\data\test.csv --confusion --show-mis --top 20
+python .\fakenews\scripts\ingest_dataset.py --data .\data\merged.csv --shuffle --balance none --test-size 0.25 --output .\data\merged.csv
+python .\fakenews\train.py --data .\data\train.csv --model-out .\models\fake_news_model.joblib --ngrams 1,2 --max-features 5000 --class-weight balanced --cv 5 --min-df 2 --max-df 0.9 --calibrate
+python .\fakenews\scripts\evaluate_model.py --model .\models\fake_news_model.joblib --data .\data\test.csv --confusion --show-mis --top 20
 ```
 
 ## Notes

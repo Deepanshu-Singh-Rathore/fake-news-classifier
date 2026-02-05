@@ -2,6 +2,14 @@ import argparse
 import json
 import joblib
 import os
+import sys
+from pathlib import Path
+
+# Ensure repo root is on sys.path when running as a script
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 from fakenews.preprocess import clean_text
 
 

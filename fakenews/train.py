@@ -4,6 +4,9 @@ import json
 import joblib
 from collections import Counter
 from typing import Tuple
+import sys
+from pathlib import Path
+import numpy as np
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
@@ -12,6 +15,11 @@ from sklearn.calibration import CalibratedClassifierCV
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
 from sklearn.metrics import classification_report, accuracy_score, roc_curve
+
+# Ensure repo root is on sys.path when running as a script
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from fakenews.preprocess import load_dataset, split_features_labels
 
@@ -28,10 +36,13 @@ def build_pipeline(model_type: str = "logistic", max_features: int = 5000, ngram
         clf = CalibratedClassifierCV(base_estimator=base, cv=3)
     elif model_type == "transformer":
         try:
-            from transformers import AutoTokenizer, AutoModelForSequenceClassification
-            import torch
+            import importlib
+            transformers = importlib.import_module("transformers")
+            torch = importlib.import_module("torch")
+            AutoTokenizer = getattr(transformers, "AutoTokenizer")
+            AutoModelForSequenceClassification = getattr(transformers, "AutoModelForSequenceClassification")
         except ImportError:
-            raise RuntimeError("transformers/torch not installed. Install extras: pip install -e .[transformer]")
+            raise RuntimeError("transformers/torch not installed. Install extras: pip install -e .[transformer] or `pip install transformers torch`")
         # Lightweight wrapper using DistilBERT (binary)
         model_name = "distilbert-base-uncased"
         tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -123,7 +134,7 @@ def main():
         print(classification_report(y_test, preds, digits=4))
         if args.cv and args.cv >= 2 and args.model_type != "transformer":
             skf = StratifiedKFold(n_splits=args.cv, shuffle=True, random_state=42)
-            cv_scores = cross_val_score(pipe, X_train, y_train, cv=skf, scoring="accuracy")
+            cv_scores = cross_val_score(pipe, np.asarray(X_train), y_train, cv=skf, scoring="accuracy")
             print(f"CV (n={args.cv}) accuracy: mean={cv_scores.mean():.4f} std={cv_scores.std():.4f}")
         eval_X, eval_y = X_test, y_test
     else:
@@ -131,7 +142,7 @@ def main():
         print("Dataset too small for stratified split; trained on full data.")
         if args.cv and args.cv >= 2 and len(set(y)) >= 2 and args.model_type != "transformer":
             skf = StratifiedKFold(n_splits=min(args.cv, max(2, min(cls_counts.values()))), shuffle=True, random_state=42)
-            cv_scores = cross_val_score(pipe, X, y, cv=skf, scoring="accuracy")
+            cv_scores = cross_val_score(pipe, np.asarray(X), y, cv=skf, scoring="accuracy")
             print(f"CV (n={skf.get_n_splits()}) accuracy: mean={cv_scores.mean():.4f} std={cv_scores.std():.4f}")
         eval_X, eval_y = X, y
 

@@ -1,1 +1,0 @@
-"""Scripts subpackage for fakenews console entry points."""
