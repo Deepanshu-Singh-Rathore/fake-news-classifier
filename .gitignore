@@ -27,6 +27,7 @@ models/*.onnx
 # Local datasets
 data/*.csv
 !data/sample.csv
+!data/merged.csv
 
 # Logs & outputs
 *.log
